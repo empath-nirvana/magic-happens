@@ -1,0 +1,67 @@
+# I can't emphasize enough what a terrible idea it is to install this
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: magic-operator
+  namespace: magic
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: magic-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: magic-operator
+    namespace: magic
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: magic
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: magic-operator
+  namespace: magic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: magic-operator
+  template:
+    metadata:
+      labels:
+        name: magic-operator
+    spec:
+      serviceAccountName: magic-operator
+      containers:
+        - name: magic-operator
+          image: ghcr.io/empath-nirvana/magic-happens:main
+          imagePullPolicy: Always
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai-api-key
+                  key: api-key
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: magic-operator
+  namespace: magic
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: magic-operator
+    namespace: magic
+---
+

@@ -144,7 +144,9 @@ spec:
         },
     ]
     messages += [{"role": "user", "content": description}]
-    response = openai_client.ChatCompletion.create(model="gpt-4", messages=messages)
+    response = openai_client.ChatCompletion.create(
+        model=os.environ["GPT_MODEL"], messages=messages
+    )
     return remove_codeblock_formatting(response["choices"][0]["message"]["content"])
 
 
@@ -254,7 +256,9 @@ Updated description:
 {description}""",
         }
     ]
-    response = openai_client.ChatCompletion.create(model="gpt-4", messages=messages)
+    response = openai_client.ChatCompletion.create(
+        model=os.environ["GPT_MODEL"], messages=messages
+    )
     return remove_codeblock_formatting(response["choices"][0]["message"]["content"])
 
 
@@ -375,7 +379,9 @@ Error:
 """,
         }
     ]
-    response = openai_client.ChatCompletion.create(model="gpt-4", messages=messages)
+    response = openai_client.ChatCompletion.create(
+        model=os.environ["GPT_MODEL"], messages=messages
+    )
     return remove_codeblock_formatting(response["choices"][0]["message"]["content"])
 
 

@@ -49,6 +49,10 @@ def apply_crd():
                                             "items": {"type": "object"},
                                         },
                                         "error": {"type": "string"},
+                                        "comments": {
+                                            "type": "array",
+                                            "items": {"type": "string"},
+                                        },
                                     },
                                 },
                             },
@@ -95,7 +99,13 @@ def generate_spec(openai_client, description):
             You are a helpful assistant whose job it is to read a description of some thing that needs to be
             created on a kubernetes cluster and return the yaml spec for the objects that need to be created.
             I'm going to be parsing your response with a computer program, so it's extremely important that you do not include any additional explanation
-            or context or markdown formatting.  ONLY RETURN THE YAML SPEC FOR THE OBJECTS.
+            or context or markdown formatting.  ONLY RETURN THE YAML SPEC FOR THE OBJECTS.  You may include ONE additional yaml object
+            in the following format, if you have additional comments to share.  This will be parsed by the computer program to add notes for the user.
+            ---
+            comments:
+              - "This will not work without credentials for the foo service saved as a secret called foo-credentials in the foo namespace."
+              - "Other comments, questions, or suggestions"
+
  """,
         },
     ]
@@ -160,8 +170,15 @@ def update_spec(openai_client, current_spec, description):
             you the current spec and a description of what should be changed.  Please return the updated yaml, including everything
             in the original yaml, even if it hasn't been changed.  It's possible that nothing at all needs to be changed, but you still
             should return the entire spec as it was originally sent to you.
+            
             I'm going to be parsing your response with a computer program, so it's extremely important that you do not include any additional explanation
             or context or markdown formatting.  ONLY RETURN THE YAML SPEC FOR THE OBJECTS.
+            You may include ONE additional yaml object
+            in the following format, if you have additional comments to share.  This will be parsed by the computer program to add notes for the user.
+            ---
+            comments:
+              - "This will not work without credentials for the foo service saved as a secret called foo-credentials in the foo namespace."
+              - "Other comments, questions, or suggestions"
  """,
         },
     ]
@@ -273,6 +290,11 @@ def ask_for_help(openai_client, current_spec, description, error):
             yaml that has been changed.
             I'm going to be parsing your response with a computer program, so it's extremely important that you do not include any additional explanation
             or context or markdown formatting.  ONLY RETURN THE YAML SPEC FOR THE OBJECTS.
+             You may include ONE additional yaml object
+            in the following format, if you have additional comments to share.  This will be parsed by the computer program to add notes for the user.
+            ---
+            comments:
+              - "I can't solve this problem because I need to know more about how foo works with baz.  Please update the description."
  """,
         },
     ]
@@ -404,12 +426,18 @@ def create_fn(spec, status, patch, logger, **_):
         patch.status["error"] = f"Error parsing yaml: {exc}"
         raise kopf.TemporaryError("Error parsing yaml, asking for help.", delay=60)
 
-    patch.spec["expected_objects"] = expected_objects_yaml
+    patch.spec["expected_objects"] = "\n---\n".join(
+        [yaml.dump(object) for object in expected_objects if "comments" not in object]
+    )
     k8s_client = kubernetes.client.ApiClient()
     dynamic_client = kubernetes.dynamic.DynamicClient(k8s_client)
 
     try:
         for object in expected_objects:
+            if "comments" in object:
+                patch.status["comments"] = object["comments"]
+                # go to next object
+                continue
             namespace = object.get("metadata", {}).get("namespace", None)
             api = dynamic_client.resources.get(
                 api_version=object["apiVersion"], kind=object["kind"]
@@ -450,7 +478,6 @@ def update_fn(spec, status, logger, patch, **kwargs):
         expected_objects_yaml = update_spec(
             openai, spec["expected_objects"], description
         )
-    patch.spec["expected_objects"] = expected_objects_yaml
 
     logger.debug(expected_objects_yaml)
     try:
@@ -459,12 +486,19 @@ def update_fn(spec, status, logger, patch, **kwargs):
         logger.debug(e)
         patch.status["error"] = f"Error parsing yaml: {e}"
         raise kopf.TemporaryError("Error parsing yaml, asking for help.", delay=60)
+    patch.spec["expected_objects"] = "\n---\n".join(
+        [yaml.dump(object) for object in expected_objects if "comments" not in object]
+    )
     expected_objects = list(expected_objects)
     k8s_client = kubernetes.client.ApiClient()
     dynamic_client = kubernetes.dynamic.DynamicClient(k8s_client)
 
     try:
         for object in expected_objects:
+            if "comments" in object:
+                patch.status["comments"] = object["comments"]
+                # go to next object
+                continue
             namespace = object.get("metadata", {}).get("namespace", None)
             api = dynamic_client.resources.get(
                 api_version=object["apiVersion"], kind=object["kind"]

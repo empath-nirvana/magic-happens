@@ -44,6 +44,8 @@ spec:
           image: ghcr.io/empath-nirvana/magic-happens:main
           imagePullPolicy: Always
           env:
+            - name: GPT_MODEL
+              value: gpt-4
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:

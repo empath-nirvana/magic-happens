@@ -9,7 +9,7 @@ import asyncio
 
 
 # Define the group, version, and plural name of the custom resource
-GROUP = "pixiedust.io"
+GROUP = "gptmagic.io"
 VERSION = "v1"
 PLURAL = "magichappens"
 

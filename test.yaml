@@ -1,7 +1,14 @@
 ---
 kind: MagicHappens
-apiVersion: pixiedust.io/v1
+apiVersion: gptmagic.io/v1
 metadata:
   name: foo
 spec:
   description: "create a redis namespace, and inside the namespace, create a redis cluster, backed by a stateful set, along with a service"
+---
+kind: MagicHappens
+apiVersion: gptmagic.io/v1
+metadata:
+  name: kyverno
+spec:
+  description: "an argocd application in the argocd namespace that installs kyverno from the helm chart, with default settings and set to auto sync and autohea, and automatically create namespace"

@@ -1,0 +1,4 @@
+kopf==1.36.0
+kubernetes==26.1.0
+openai==0.27.2
+PyYAML==6.0

@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 import kopf
 import kubernetes.client
-from kubernetes.client import V1Status
 import openai
 import os
 import yaml
-import asyncio
 
 
 # Define the group, version, and plural name of the custom resource
@@ -64,12 +62,15 @@ def apply_crd():
     }
     kubernetes.config.load_kube_config()
     api_instance = kubernetes.client.CustomObjectsApi()
-    api_instance.create_cluster_custom_object(
-        group="apiextensions.k8s.io",
-        version="v1",
-        plural="customresourcedefinitions",
-        body=crd_spec,
-    )
+    try:
+        api_instance.create_cluster_custom_object(
+            group="apiextensions.k8s.io",
+            version="v1",
+            plural="customresourcedefinitions",
+            body=crd_spec,
+        )
+    except:
+        pass
 
 
 def remove_codeblock_formatting(text):

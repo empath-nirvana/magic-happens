@@ -2,7 +2,7 @@
 kind: MagicHappens
 apiVersion: gptmagic.io/v1
 metadata:
-  name: foo
+  name: redis
 spec:
   description: "create a redis namespace, and inside the namespace, create a redis cluster, backed by a stateful set, along with a service"
 ---

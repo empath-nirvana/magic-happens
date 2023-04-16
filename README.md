@@ -21,6 +21,7 @@ Upon receiving the YAML, the operator sends the description to OpenAI, which the
 * A Kubernetes cluster (for testing purposes only).
 * kubectl installed and configured to interact with your cluster.
 * Python 3.7+ installed.
+* an openai api key
 ## Installation
 
 ```

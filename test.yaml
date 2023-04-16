@@ -1,0 +1,7 @@
+---
+kind: MagicHappens
+apiVersion: pixiedust.io/v1
+metadata:
+  name: foo
+spec:
+  description: "create a redis namespace, and inside the namespace, create a redis cluster, backed by a stateful set, along with a service"

@@ -1,3 +1,5 @@
+Readme written by chatgpt, because of course it is:
+
 # MagicHappens Kubernetes Operator
 Welcome to the MagicHappens Kubernetes Operator project! This is a proof-of-concept (PoC) operator, built using Kopf, that leverages OpenAI's GPT-powered generation capabilities to create a Kubernetes spec from a simple, human-readable description. Please note that this project is just for fun and should NOT be deployed to a real Kubernetes cluster under any circumstances.
 

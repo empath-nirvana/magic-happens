@@ -38,13 +38,14 @@ def apply_crd():
                                     "type": "object",
                                     "properties": {
                                         "description": {"type": "string"},
-                                        "expected_objects": {"type": "string"},
+                                        "expectedObjects": {"type": "string"},
+                                        "dryRun": {"type": "boolean", "default": True},
                                     },
                                 },
                                 "status": {
                                     "type": "object",
                                     "properties": {
-                                        "created_objects": {
+                                        "createdObjects": {
                                             "type": "array",
                                             "items": {"type": "object"},
                                         },
@@ -53,6 +54,8 @@ def apply_crd():
                                             "type": "array",
                                             "items": {"type": "string"},
                                         },
+                                        "created": {"type": "object"},
+                                        "updated": {"type": "object"},
                                     },
                                 },
                             },
@@ -408,17 +411,22 @@ Error:
 
 
 @kopf.on.create(GROUP, VERSION, PLURAL)
-def create_fn(spec, status, patch, logger, **_):
+def created(spec, status, patch, logger, **_):
     # check if there's an error in the status and an expected_objects field in the spec
 
     description = spec.get("description")
     openai.api_key = os.environ["OPENAI_API_KEY"]
-    if "error" in status and "expected_objects" in spec and status["error"] != "":
+    if "error" in status and "expectedObjects" in spec and status["error"] != "":
         expected_objects_yaml = ask_for_help(
-            openai, spec["expected_objects"], description, status["error"]
+            openai, spec["expectedObjects"], description, status["error"]
         )
     else:
-        expected_objects_yaml = generate_spec(openai, description)
+        if "expectedObjects" in spec:
+            expected_objects_yaml = update_spec(
+                openai, spec["expectedObjects"], description
+            )
+        else:
+            expected_objects_yaml = generate_spec(openai, description)
     logger.debug(expected_objects_yaml)
     try:
         expected_objects = list(yaml.safe_load_all(expected_objects_yaml))
@@ -426,7 +434,7 @@ def create_fn(spec, status, patch, logger, **_):
         patch.status["error"] = f"Error parsing yaml: {exc}"
         raise kopf.TemporaryError("Error parsing yaml, asking for help.", delay=60)
 
-    patch.spec["expected_objects"] = "\n---\n".join(
+    patch.spec["expectedObjects"] = "\n---\n".join(
         [yaml.dump(object) for object in expected_objects if "comments" not in object]
     )
     k8s_client = kubernetes.client.ApiClient()
@@ -437,6 +445,9 @@ def create_fn(spec, status, patch, logger, **_):
             if "comments" in object:
                 patch.status["comments"] = object["comments"]
                 # go to next object
+                continue
+
+            if spec["dryRun"]:
                 continue
             namespace = object.get("metadata", {}).get("namespace", None)
             api = dynamic_client.resources.get(
@@ -467,16 +478,16 @@ def create_fn(spec, status, patch, logger, **_):
 
 
 @kopf.on.update(GROUP, VERSION, PLURAL)
-def update_fn(spec, status, logger, patch, **kwargs):
+def updated(spec, status, logger, patch, **kwargs):
     description = spec.get("description")
     openai.api_key = os.environ["OPENAI_API_KEY"]
-    if "error" in status and "expected_objects" in spec and status["error"] != "":
+    if "error" in status and "expectedObjects" in spec and status["error"] != "":
         expected_objects_yaml = ask_for_help(
-            openai, spec["expected_objects"], description, status["error"]
+            openai, spec["expectedObjects"], description, status["error"]
         )
     else:
         expected_objects_yaml = update_spec(
-            openai, spec["expected_objects"], description
+            openai, spec["expectedObjects"], description
         )
 
     logger.debug(expected_objects_yaml)
@@ -486,7 +497,7 @@ def update_fn(spec, status, logger, patch, **kwargs):
         logger.debug(e)
         patch.status["error"] = f"Error parsing yaml: {e}"
         raise kopf.TemporaryError("Error parsing yaml, asking for help.", delay=60)
-    patch.spec["expected_objects"] = "\n---\n".join(
+    patch.spec["expectedObjects"] = "\n---\n".join(
         [yaml.dump(object) for object in expected_objects if "comments" not in object]
     )
     expected_objects = list(expected_objects)
@@ -498,6 +509,8 @@ def update_fn(spec, status, logger, patch, **kwargs):
             if "comments" in object:
                 patch.status["comments"] = object["comments"]
                 # go to next object
+                continue
+            if spec["dryRun"]:
                 continue
             namespace = object.get("metadata", {}).get("namespace", None)
             api = dynamic_client.resources.get(
@@ -529,7 +542,7 @@ def update_fn(spec, status, logger, patch, **kwargs):
 def delete_fn(spec, status, **kwargs):
     # Placeholder for logic to handle delete event
     # Here you can implement the deletion of created_objects based on the status
-    created_objects = status.get("created_objects", [])
+    created_objects = status.get("createdObjects", [])
 
     # Placeholder for logic to confirm deletion of created_objects
 

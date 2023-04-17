@@ -5,6 +5,12 @@ metadata:
   name: redis
 spec:
   description: "create a redis namespace, and inside the namespace, create a redis cluster, backed by a stateful set, along with a service"
+  # actually applies the yaml, defaults to true.
+  dryRun: false
+  # if you want, you can supply some yaml you want to modify here, the operator will fill this in if you don't
+  # include any
+  # expectedYaml: |
+
 ---
 # kind: MagicHappens
 # apiVersion: gptmagic.io/v1
